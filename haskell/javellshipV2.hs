@@ -1,10 +1,20 @@
 import Data.Char (ord)
 
+import System.Random
+
+randomShip2 = ["(2,4);(2,5)"]
+
+randomShip3 = ["(5,4);(5,5);(5,6)"]
+
+randomShip4 = ["(4,8);(5,8);(6,8);(7,8)"]
+
+randomShip5 = ["(3,1);(4,1);(5,1);(6,1);(7,1)"]
+
 type Field = [[Bool]]
 type Coordinate = (Int, Int)
 type Ship = [Coordinate]
 fieldSize = 8
-maxShipSize = 2
+maxShipSize = 5
 minShipSize = 2
 
 -- Select the n-th element in a list
@@ -19,11 +29,14 @@ replace n xs x = take (n-1) xs ++ [x] ++ drop n xs
 initField :: Field
 initField = take fieldSize (repeat (take fieldSize (repeat False)))
 
+pick :: [a] -> IO a
+pick xs = randomRIO (0, (length xs - 1)) >>= return . (xs !!)
+
 -- Extract the coordinate from the string
 -- Also immediately convert the coordinate from range [0,10[ to [1,10]
 -- An invalid coordinate is returned when the string isn't of the correct style.
 convertStringToCoordinates :: String -> Coordinate
-convertStringToCoordinates ['(', x, ',', y, ')'] = ((ord x) - (ord '0') + 1, (ord y) - (ord '0') + 1)
+convertStringToCoordinates ['(', x, ',', y, ')'] = ((ord x) - (ord '0'), (ord y) - (ord '0'))
 convertStringToCoordinates _ = (-1, -1)
 
 -- Convert the field into a printable string
@@ -36,7 +49,7 @@ convertFieldToString field ships coordinate
                                                     else 'x' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                            else ' ' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                         
-        | snd coordinate <= fieldSize = "#\n#" ++ convertFieldToString field ships (1, snd coordinate + 1)
+        | snd coordinate <= fieldSize = "H\nH" ++ convertFieldToString field ships (1, snd coordinate + 1)
         | otherwise = []
 
 -- Convert the field into a printable string
@@ -44,7 +57,7 @@ printShipsA :: Field -> [Ship] -> Coordinate -> String
 printShipsA field ships coordinate
         | fst coordinate <= fieldSize
           && snd coordinate <= fieldSize =  if or [coordinate == coord | ship <- ships, coord <- ship] 
-                                            then 's' : printShipsA field ships (fst coordinate + 1, snd coordinate)
+                                            then 'S' : printShipsA field ships (fst coordinate + 1, snd coordinate)
                                             else ' ' : printShipsA field ships (fst coordinate + 1, snd coordinate)
                                         
         | snd coordinate <= fieldSize = "#\n#" ++ printShipsA field ships (1, snd coordinate + 1)
@@ -83,7 +96,7 @@ splitCoordinatesInString (x:xs) = if x == ';' then
 -- Output the field in the terminal
 printField :: Field -> [Ship] -> IO ()
 printField field ships = do
-                          putStrLn (take (fieldSize+2) (repeat '#') ++ "\n#" ++ convertFieldToString field ships (1, 1) ++ take (fieldSize+1) (repeat '#') )
+                          putStrLn (take (fieldSize+2) (repeat 'H') ++ "\nH" ++ convertFieldToString field ships (1, 1) ++ take (fieldSize+1) (repeat 'H') )
                           putStrLn ""
 
 -- Output the field in the terminal
@@ -101,9 +114,9 @@ markShot field x y = replace x field (replace y (select x field) True)
 play :: [Field] -> [[Ship]] -> IO ()
 play fields ships = do
                             putStrLn ("your board:")
-                            printField (head fields) (head ships)
-                            --putStrLn ("opponent's board:")
-                            --printField (last fields) (last ships)
+                            printShips (head fields) (head ships)
+                            putStrLn ("opponent's board:")
+                            printShips (last fields) (last ships)
 
 
 -- Input one ship with a given length
@@ -128,12 +141,59 @@ inputShips shipSize placedShips = if shipSize <= maxShipSize then
                                   else
                                       return []
 
+-- Input one ship with a given length
+chooseShip :: Int -> IO String
+chooseShip len = do
+                  if len == 2
+                    then 
+                      do
+                        string <- pick randomShip2
+                        return string
+                  else if len == 3
+                    then
+                      do
+                        string <- pick randomShip3
+                        return string
+                  else if len == 4
+                    then
+                      do
+                        string <- pick randomShip4
+                        return string
+                  else if len == 5
+                    then
+                      do
+                        string <- pick randomShip5
+                        return string             
+                  else
+                    return ""
+                    
+
+-- Input one ship with a given length
+inputShipAI :: [Ship] -> Int -> IO Ship
+inputShipAI placedShips len = do
+                              string <- chooseShip len
+                              let stringCoords = splitCoordinatesInString string
+                              let coords = map convertStringToCoordinates stringCoords
+                              if validateShipCoordinates placedShips coords len then
+                                  return coords
+                              else
+                                  inputShipAI placedShips len
+
+-- Input all the ships for a player
+inputShipsAI :: Int -> [Ship] -> IO [Ship]
+inputShipsAI shipSize placedShips = if shipSize <= maxShipSize then
+                                      do
+                                        ship <- inputShipAI placedShips shipSize
+                                        shipList <- inputShipsAI (shipSize + 1) (ship : placedShips)
+                                        return (ship : shipList)
+                                  else
+                                      return []
 
 -- The entry point of the program
 main :: IO ()
 main = do
          shipsPlayer1 <- inputShips minShipSize []
 
-         shipsPlayer2 <- inputShips minShipSize []
+         shipsPlayer2 <- inputShipsAI minShipSize []
 
          play [initField, initField] [shipsPlayer1, shipsPlayer2]
