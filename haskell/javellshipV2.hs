@@ -4,12 +4,16 @@ type Field = [[Bool]]
 type Coordinate = (Int, Int)
 type Ship = [Coordinate]
 fieldSize = 8
-maxShipSize = 5
+maxShipSize = 2
 minShipSize = 2
 
 -- Select the n-th element in a list
 select :: Int -> [a] -> a
 select n xs = head (drop (n-1) (take n xs))
+
+-- Change n-th element in a list
+replace :: Int -> [a] -> a -> [a]
+replace n xs x = take (n-1) xs ++ [x] ++ drop n xs
 
 -- Initialize the 8x8 field
 initField :: Field
@@ -26,12 +30,24 @@ convertStringToCoordinates _ = (-1, -1)
 convertFieldToString :: Field -> [Ship] -> Coordinate -> String
 convertFieldToString field ships coordinate
         | fst coordinate <= fieldSize
-          && snd coordinate <= fieldSize = if select (fst coordinate) (select (snd coordinate) field) == True then
-                                               if or [coordinate == coord | ship <- ships, coord <- ship] then 'o' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
-                                                   else 'x' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
+          && snd coordinate <= fieldSize =  if select (fst coordinate) (select (snd coordinate) field) == True 
+                                                then if or [coordinate == coord | ship <- ships, coord <- ship] 
+                                                        then 'o' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
+                                                    else 'x' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                            else ' ' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                         
-        | snd coordinate <= fieldSize = "H\nH" ++ convertFieldToString field ships (1, snd coordinate + 1)
+        | snd coordinate <= fieldSize = "#\n#" ++ convertFieldToString field ships (1, snd coordinate + 1)
+        | otherwise = []
+
+-- Convert the field into a printable string
+printShipsA :: Field -> [Ship] -> Coordinate -> String
+printShipsA field ships coordinate
+        | fst coordinate <= fieldSize
+          && snd coordinate <= fieldSize =  if or [coordinate == coord | ship <- ships, coord <- ship] 
+                                            then 's' : printShipsA field ships (fst coordinate + 1, snd coordinate)
+                                            else ' ' : printShipsA field ships (fst coordinate + 1, snd coordinate)
+                                        
+        | snd coordinate <= fieldSize = "#\n#" ++ printShipsA field ships (1, snd coordinate + 1)
         | otherwise = []
 
 -- Check if a coordinate lies inside the field
@@ -64,10 +80,30 @@ splitCoordinatesInString (x:xs) = if x == ';' then
                                   else
                                       (x : head (splitCoordinatesInString xs)) : tail (splitCoordinatesInString xs)
 
+-- Output the field in the terminal
 printField :: Field -> [Ship] -> IO ()
 printField field ships = do
-                                      putStrLn (take (fieldSize+2) (repeat 'H') ++ "\nH" ++ convertFieldToString field ships (1, 1) ++ take (fieldSize+1) (repeat 'H') )
-                                      putStrLn ""
+                          putStrLn (take (fieldSize+2) (repeat '#') ++ "\n#" ++ convertFieldToString field ships (1, 1) ++ take (fieldSize+1) (repeat '#') )
+                          putStrLn ""
+
+-- Output the field in the terminal
+printShips :: Field -> [Ship] -> IO ()
+printShips field ships = do
+                          putStrLn (take (fieldSize+2) (repeat '#') ++ "\n#" ++ printShipsA field ships (1, 1) ++ take (fieldSize+1) (repeat '#') )
+                          putStrLn ""
+
+                    
+
+-- Mark a cell on the field as shot
+markShot :: Field -> Int -> Int -> Field
+markShot field x y = replace x field (replace y (select x field) True)
+
+play :: [Field] -> [[Ship]] -> IO ()
+play fields ships = do
+                            putStrLn ("your board:")
+                            printField (head fields) (head ships)
+                            --putStrLn ("opponent's board:")
+                            --printField (last fields) (last ships)
 
 
 -- Input one ship with a given length
@@ -91,8 +127,13 @@ inputShips shipSize placedShips = if shipSize <= maxShipSize then
                                         return (ship : shipList)
                                   else
                                       return []
+
+
 -- The entry point of the program
 main :: IO ()
 main = do
          shipsPlayer1 <- inputShips minShipSize []
-         printField initField shipsPlayer1
+
+         shipsPlayer2 <- inputShips minShipSize []
+
+         play [initField, initField] [shipsPlayer1, shipsPlayer2]
