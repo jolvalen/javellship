@@ -10,6 +10,12 @@ To remove all the files created from compilation, run
 
 	$ make clean
 
+A sample of properly formatted Coordinates can be found in "Coordinates.txt". Use this 
+as sample input for the program. 
+
+
+
+
 
 
 

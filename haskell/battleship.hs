@@ -1,5 +1,4 @@
 import Data.Char (ord)
-
 import System.Random
 
 randomShip2 = ["(2,4);(2,5)", "(1,7);(2,7)", "(1,4);(1,5)"]
@@ -19,6 +18,7 @@ shootRandom = ["(1,1)", "(1,2)", "(1,3)", "(1,4)", "(1,5)", "(1,6)", "(1,7)", "(
                "(7,1)", "(7,2)", "(7,3)", "(7,4)", "(7,5)", "(7,6)", "(7,7)", "(7,8)",
                "(8,1)", "(8,2)", "(8,3)", "(8,4)", "(8,5)", "(8,6)", "(8,7)", "(8,8)"]
 
+--The STANDARD names when 1 player option is selected. 
 name1 = "player1"
 name2 = "computer"
 
@@ -171,16 +171,7 @@ fire (enemyField, enemyShips) coordinate = (markShot enemyField (snd coordinate)
                                             or [snd (checkShipDestroyed enemyField ship coordinate) | ship <- enemyShips])
 
 
--- Fire at the opponent once for every ship you have left
---
--- Input:
---    enemyField: Current field of the opponent
---    enemyShips: The list of all ships from the opponent
---    ourShips:   List of ship that we have left that can still fire
---
--- Output:
---    Tuple containing the updated field and ships of the opponent
---
+--Fire with the remaining ships that the player has. 
 fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> [String] -> IO (Field, [Ship])
 fireWithEveryShip (enemyField, enemyShips) [] myField nameCheck = return (enemyField, enemyShips)
 fireWithEveryShip (enemyField, enemyShips) ourShips myField nameCheck = do
@@ -188,15 +179,15 @@ fireWithEveryShip (enemyField, enemyShips) ourShips myField nameCheck = do
                                                         putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)")
                                                         string <- getLine
                                                         if (string == "show my ships")
-                                                            then if (head nameCheck /= name1 && last nameCheck /= name2) --Both names are not the standard names
+                                                            then if (head nameCheck /= name1 && last nameCheck /= name2) --Check for non-standard names
                                                                 then do
-                                                                    putStrLn ("Are you player 1? (Y/N)") --Find out which player this is
+                                                                    putStrLn ("Are you " ++ head nameCheck ++ "? (Y/N)") --Find out which player this is
                                                                     answer <- getLine
-                                                                    if (answer == "Y")
+                                                                    if (answer == "N" || answer == "n")
                                                                         then 
-                                                                            printShips myField ourShips
-                                                                        else 
                                                                             printShips enemyField enemyShips
+                                                                        else 
+                                                                            printShips myField ourShips
                                                                 else 
                                                                     printShips myField ourShips --Print only ships for player1, Not the computer. 
                                                             else do 
