@@ -26,7 +26,7 @@ type Field = [[Bool]]
 type Coordinate = (Int, Int)
 type Ship = [Coordinate]
 fieldSize = 8
-maxShipSize = 2
+maxShipSize = 5
 minShipSize = 2
 
 checkTurnAI = False
