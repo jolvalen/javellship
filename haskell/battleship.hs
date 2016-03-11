@@ -26,7 +26,7 @@ type Field = [[Bool]]
 type Coordinate = (Int, Int)
 type Ship = [Coordinate]
 fieldSize = 8
-maxShipSize = 5
+maxShipSize = 2
 minShipSize = 2
 
 checkTurnAI = False
@@ -178,11 +178,19 @@ fire (enemyField, enemyShips) coordinate = (markShot enemyField (snd coordinate)
 -- Output:
 --    Tuple containing the updated field and ships of the opponent
 --
-fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> IO (Field, [Ship])
-fireWithEveryShip (enemyField, enemyShips) [] = return (enemyField, enemyShips)
-fireWithEveryShip (enemyField, enemyShips) ourShips = do
+fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> IO (Field, [Ship])
+fireWithEveryShip (enemyField, enemyShips) [] myField= return (enemyField, enemyShips)
+fireWithEveryShip (enemyField, enemyShips) ourShips myField= do
                                                         putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)")
+                                                        putStrLn ("Enter \"show my ships\" to view BattleField")
                                                         string <- getLine
+                                                        if (string == "show my ships")
+                                                        then do
+                                                            putStrLn ("Your placed ships")
+                                                            printShips myField ourShips
+                                                            putStrLn ("")
+                                                        else do 
+                                                            putStrLn ("")
                                                         let coord = convertStringToCoordinates string
                                                         if validateCoordinate coord then
                                                             do
@@ -196,11 +204,11 @@ fireWithEveryShip (enemyField, enemyShips) ourShips = do
                                                               if length newEnemyShips < length enemyShips then
                                                                   do
                                                                     putStrLn "You sunk my battleship!"
-                                                                    fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips)
+                                                                    fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField
                                                               else
-                                                                  fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips)
+                                                                  fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField 
                                                         else
-                                                            fireWithEveryShip (enemyField, enemyShips) ourShips
+                                                            fireWithEveryShip (enemyField, enemyShips) ourShips myField
 
 fireWithEveryShipAI :: (Field, [Ship]) -> [Ship] -> IO (Field, [Ship])
 fireWithEveryShipAI (enemyField, enemyShips) [] = return (enemyField, enemyShips)
@@ -240,7 +248,7 @@ play names fields ships = do
                             --printShips (head fields) (head ships)
                             printField (head names) (head fields) (head ships)
                             printField (last names) (last fields) (last ships)
-                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships)
+                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships) (head fields)
                             if length newShipList == 0 then
                                 do
                                   putStrLn ("\n" ++ head names ++ " won!\n")
@@ -253,7 +261,9 @@ playAI :: [String] -> [Field] -> [[Ship]] -> IO ()
 playAI names fields ships = do
                             putStrLn ("\n" ++ head names ++ "'s turn")
                             --printShips (head fields) (head ships)
-                            printField (last names) (last fields) (last ships)
+                            --printField (head names) (head fields) (head ships)
+                            --printField (last names) (last fields) (last ships)
+
                             (newField, newShipList) <- fireWithEveryShipAI (last fields, last ships) (head ships)
                             if length newShipList == 0 then
                                 do
