@@ -26,7 +26,7 @@ type Field = [[Bool]]
 type Coordinate = (Int, Int)
 type Ship = [Coordinate]
 fieldSize = 8
-maxShipSize = 2
+maxShipSize = 5
 minShipSize = 2
 
 checkTurnAI = False
@@ -59,9 +59,9 @@ convertFieldToString field ships coordinate
         | fst coordinate <= fieldSize
           && snd coordinate <= fieldSize =  if select (fst coordinate) (select (snd coordinate) field) == True 
                                                 then if or [coordinate == coord | ship <- ships, coord <- ship] 
-                                                        then 'o' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
+                                                    then 'o' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                                     else 'x' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
-                                           else ' ' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
+                                                else ' ' : convertFieldToString field ships (fst coordinate + 1, snd coordinate)
                                         
         | snd coordinate <= fieldSize = "H\nH" ++ convertFieldToString field ships (1, snd coordinate + 1)
         | otherwise = []
@@ -71,8 +71,8 @@ printShipsA :: Field -> [Ship] -> Coordinate -> String
 printShipsA field ships coordinate
         | fst coordinate <= fieldSize
           && snd coordinate <= fieldSize =  if or [coordinate == coord | ship <- ships, coord <- ship] 
-                                            then 'S' : printShipsA field ships (fst coordinate + 1, snd coordinate)
-                                            else ' ' : printShipsA field ships (fst coordinate + 1, snd coordinate)
+                                                then 'S' : printShipsA field ships (fst coordinate + 1, snd coordinate)
+                                                else ' ' : printShipsA field ships (fst coordinate + 1, snd coordinate)
                                         
         | snd coordinate <= fieldSize = "#\n#" ++ printShipsA field ships (1, snd coordinate + 1)
         | otherwise = []
@@ -102,10 +102,11 @@ validateShipCoordinates placedShips ship shipLength
 -- You must still call convertStringToCoordinates on every element in the returned list.
 splitCoordinatesInString :: String -> [String]
 splitCoordinatesInString [] = [[]]
-splitCoordinatesInString (x:xs) = if x == ';' then
-                                      [] : splitCoordinatesInString xs
-                                  else
-                                      (x : head (splitCoordinatesInString xs)) : tail (splitCoordinatesInString xs)
+splitCoordinatesInString (x:xs) = if x == ';' 
+                                      then
+                                          [] : splitCoordinatesInString xs
+                                      else
+                                          (x : head (splitCoordinatesInString xs)) : tail (splitCoordinatesInString xs)
 
 -- Output the field in the terminal
 printField :: String -> Field -> [Ship] -> IO ()
@@ -144,13 +145,15 @@ removeDestroyedShips (x:xs) | null x    = removeDestroyedShips xs
 --    When the ship is sunk, an empty list will be returned instead of the ship that was given as input.
 --
 checkShipDestroyed :: Field -> Ship -> Coordinate -> (Ship, Bool)
-checkShipDestroyed field ship coordinate = if or [coordinate == coord | coord <- ship] == False then do
-                                               (ship, False)    -- Miss
-                                           else do
-                                               if and [select (fst coord) (select (snd coord) field) == True | coord <- ship, coord /= coordinate] == False then
-                                                   (ship, True) -- Hit, but not sunk
-                                               else
-                                                   ([], True)   -- Hit and sunk
+checkShipDestroyed field ship coordinate = if or [coordinate == coord | coord <- ship] == False 
+                                                then do
+                                                    (ship, False)    -- Miss
+                                                else do
+                                                    if and [    select (fst coord) (select (snd coord) field) == True | coord <- ship, coord /= coordinate] == False 
+                                                        then
+                                                            (ship, True) -- Hit, but not sunk
+                                                        else
+                                                            ([], True)   -- Hit and sunk
 
 -- Fire a shot at a given coordinate
 --
@@ -178,36 +181,45 @@ fire (enemyField, enemyShips) coordinate = (markShot enemyField (snd coordinate)
 -- Output:
 --    Tuple containing the updated field and ships of the opponent
 --
-fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> IO (Field, [Ship])
-fireWithEveryShip (enemyField, enemyShips) [] myField= return (enemyField, enemyShips)
-fireWithEveryShip (enemyField, enemyShips) ourShips myField= do
-                                                        putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)  or  " ++ "Enter \"show my ships\" to view BattleField")
+fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> Bool -> IO (Field, [Ship])
+fireWithEveryShip (enemyField, enemyShips) [] myField multiplePlayers = return (enemyField, enemyShips)
+fireWithEveryShip (enemyField, enemyShips) ourShips myField multiplePlayers = do
+                                                        putStrLn("Enter \"show my ships\" to view BattleField")
+                                                        putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)")
                                                         string <- getLine
                                                         if (string == "show my ships")
-                                                        then do
-                                                            putStrLn ("Your placed ships")
-                                                            printShips myField ourShips
-                                                            putStrLn ("")
-                                                        else do 
-                                                            putStrLn ("")
+                                                            then if multiplePlayers 
+                                                                then do
+                                                                    putStrLn ("Are you player 1? (Y/N)")
+                                                                    answer <- getLine
+                                                                    if (answer == "Y")
+                                                                        then 
+                                                                            printShips myField ourShips
+                                                                        else 
+                                                                            printShips enemyField enemyShips
+                                                                else 
+                                                                    printShips myField ourShips
+                                                            else do 
+                                                                --putStrLn ("Your placed ships")
+                                                                --printShips myField ourShips
+                                                                putStrLn ("")                                                                
                                                         let coord = convertStringToCoordinates string
-                                                        if validateCoordinate coord then
-                                                            do
-                                                              let (newEnemyField, newEnemyShips, hit) = fire (enemyField, enemyShips) coord
-
-                                                              if hit then
-                                                                  putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Hit")
-                                                              else
-                                                                  putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Miss")
-
-                                                              if length newEnemyShips < length enemyShips then
-                                                                  do
-                                                                    putStrLn "You sunk my battleship!"
-                                                                    fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField
-                                                              else
-                                                                  fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField 
-                                                        else
-                                                            fireWithEveryShip (enemyField, enemyShips) ourShips myField
+                                                        if validateCoordinate coord 
+                                                            then do
+                                                                let (newEnemyField, newEnemyShips, hit) = fire (enemyField, enemyShips) coord
+                                                                if hit 
+                                                                    then do
+                                                                        putStrLn ("Firing at coordinate (" ++ show (fst coord) ++ "," ++ show (snd coord) ++ "), Hit")
+                                                                    else do
+                                                                    putStrLn ("Firing at coordinate (" ++ show (fst coord) ++ "," ++ show (snd coord) ++ "), Miss")
+                                                                if (length newEnemyShips < length enemyShips && multiplePlayers)
+                                                                    then do
+                                                                        putStrLn "You sunk my battleship!"  
+                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField True
+                                                                    else
+                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField True
+                                                            else
+                                                                fireWithEveryShip (enemyField, enemyShips) ourShips myField False
 
 fireWithEveryShipAI :: (Field, [Ship]) -> [Ship] -> IO (Field, [Ship])
 fireWithEveryShipAI (enemyField, enemyShips) [] = return (enemyField, enemyShips)
@@ -215,23 +227,23 @@ fireWithEveryShipAI (enemyField, enemyShips) ourShips = do
                                                         putStrLn ("Computer is shooting (" ++ show (length ourShips) ++ " shots left)")
                                                         string <- pick shootRandom
                                                         let coord = convertStringToCoordinates string
-                                                        if validateCoordinate coord then
-                                                            do
-                                                              let (newEnemyField, newEnemyShips, hit) = fire (enemyField, enemyShips) coord
+                                                        if validateCoordinate coord 
+                                                            then do
+                                                                let (newEnemyField, newEnemyShips, hit) = fire (enemyField, enemyShips) coord
 
-                                                              if hit then
-                                                                  putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Hit")
-                                                              else
-                                                                  putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Miss")
-
-                                                              if length newEnemyShips < length enemyShips then
-                                                                  do
-                                                                    putStrLn "You sunk my battleship!"
-                                                                    fireWithEveryShipAI (newEnemyField, newEnemyShips) (tail ourShips)
-                                                              else
-                                                                  fireWithEveryShipAI (newEnemyField, newEnemyShips) (tail ourShips)
-                                                        else
-                                                            fireWithEveryShipAI (enemyField, enemyShips) ourShips
+                                                                if hit 
+                                                                    then
+                                                                        putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Hit")
+                                                                    else
+                                                                        putStrLn ("Firing at coordinate (" ++ show ((fst coord)) ++ "," ++ show ((snd coord)) ++ "), Miss")
+                                                                if length newEnemyShips < length enemyShips 
+                                                                    then do
+                                                                        putStrLn "You sunk my battleship!"
+                                                                        fireWithEveryShipAI (newEnemyField, newEnemyShips) (tail ourShips)
+                                                                    else
+                                                                        fireWithEveryShipAI (newEnemyField, newEnemyShips) (tail ourShips)
+                                                            else
+                                                                fireWithEveryShipAI (enemyField, enemyShips) ourShips
 -- Play the game, one turn at a time
 --
 -- Input:
@@ -241,20 +253,22 @@ fireWithEveryShipAI (enemyField, enemyShips) ourShips = do
 --
 -- The first element in the lists, are from the player whose turn it currently is
 --
-play :: [String] -> [Field] -> [[Ship]] -> IO ()
-play names fields ships = do
+play :: [String] -> [Field] -> [[Ship]] -> Bool -> IO ()
+play names fields ships singlePlayer = do
                             putStrLn ("\n" ++ head names ++ " turn")
-                            --printShips (head fields) (head ships)
                             printField (head names) (head fields) (head ships)
                             printField (last names) (last fields) (last ships)
-                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships) (head fields)
-                            if length newShipList == 0 then
-                                do
-                                  putStrLn ("\n" ++ head names ++ " won!\n")
-                                  printField (last names) newField newShipList
-                                  printField (head names) (head fields) (head ships)
-                            else
-                                playAI [last names, head names] [newField, head fields] [newShipList, head ships]
+                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships) (head fields) False
+                            if length newShipList == 0 
+                                then do
+                                    putStrLn ("\n" ++ head names ++ " won!\n")
+                                    printField (last names) newField newShipList
+                                    printField (head names) (head fields) (head ships)
+                                else if singlePlayer
+                                    then
+                                        playAI [last names, head names] [newField, head fields] [newShipList, head ships] 
+                                    else
+                                        play [last names, head names] [newField, head fields] [newShipList, head ships] False
 
 playAI :: [String] -> [Field] -> [[Ship]] -> IO ()
 playAI names fields ships = do
@@ -264,35 +278,36 @@ playAI names fields ships = do
                             --printField (last names) (last fields) (last ships)
 
                             (newField, newShipList) <- fireWithEveryShipAI (last fields, last ships) (head ships)
-                            if length newShipList == 0 then
-                                do
-                                  putStrLn ("\n" ++ head names ++ " won!\n")
-                                  printField (last names) newField newShipList
-                                  printField (head names) (head fields) (head ships)
-                            else
-                                play [last names, head names] [newField, head fields] [newShipList, head ships]
+                            if length newShipList == 0 
+                                then do
+                                    putStrLn ("\n" ++ head names ++ "s won!\n")
+                                    printField (last names) newField newShipList
+                                    printField (head names) (head fields) (head ships)
+                                else
+                                    play [last names, head names] [newField, head fields] [newShipList, head ships] True
 
 -- Input one ship with a given length
 inputShip :: [Ship] -> Int -> IO Ship
 inputShip placedShips len = do
-                              putStrLn ("Enter the coordinates of the ship of length " ++ show len ++ "?")
-                              string <- getLine
-                              let stringCoords = splitCoordinatesInString string
-                              let coords = map convertStringToCoordinates stringCoords
-                              if validateShipCoordinates placedShips coords len then
-                                  return coords
-                              else
-                                  inputShip placedShips len
+                                putStrLn ("Enter the coordinates of the ship of length " ++ show len ++ "?")
+                                string <- getLine
+                                let stringCoords = splitCoordinatesInString string
+                                let coords = map convertStringToCoordinates stringCoords
+                                if validateShipCoordinates placedShips coords len 
+                                    then
+                                        return coords
+                                    else
+                                        inputShip placedShips len
 
 -- Input all the ships for a player
 inputShips :: Int -> [Ship] -> IO [Ship]
-inputShips shipSize placedShips = if shipSize <= maxShipSize then
-                                      do
+inputShips shipSize placedShips = if shipSize <= maxShipSize 
+                                    then do
                                         ship <- inputShip placedShips shipSize
                                         shipList <- inputShips (shipSize + 1) (ship : placedShips)
                                         return (ship : shipList)
-                                  else
-                                      return []
+                                    else
+                                        return []
 
 -- Input one ship with a given length
 chooseShip :: Int -> IO String
@@ -324,23 +339,24 @@ chooseShip len = do
 -- Input one ship with a given length
 inputShipAI :: [Ship] -> Int -> IO Ship
 inputShipAI placedShips len = do
-                              string <- chooseShip len
-                              let stringCoords = splitCoordinatesInString string
-                              let coords = map convertStringToCoordinates stringCoords
-                              if validateShipCoordinates placedShips coords len then
-                                  return coords
-                              else
-                                  inputShipAI placedShips len
+                                string <- chooseShip len
+                                let stringCoords = splitCoordinatesInString string
+                                let coords = map convertStringToCoordinates stringCoords
+                                if validateShipCoordinates placedShips coords len 
+                                    then
+                                        return coords
+                                    else
+                                        inputShipAI placedShips len
 
 -- Input all the ships for a player
 inputShipsAI :: Int -> [Ship] -> IO [Ship]
-inputShipsAI shipSize placedShips = if shipSize <= maxShipSize then
-                                      do
-                                        ship <- inputShipAI placedShips shipSize
-                                        shipList <- inputShipsAI (shipSize + 1) (ship : placedShips)
-                                        return (ship : shipList)
-                                  else
-                                      return []
+inputShipsAI shipSize placedShips = if shipSize <= maxShipSize 
+                                        then do
+                                            ship <- inputShipAI placedShips shipSize
+                                            shipList <- inputShipsAI (shipSize + 1) (ship : placedShips)
+                                            return (ship : shipList)
+                                        else
+                                            return []
 -- Input the names of the players
 inputNames :: IO [String]
 inputNames =
@@ -348,9 +364,23 @@ inputNames =
 -- The entry point of the program
 main :: IO ()
 main = do
-         names <- inputNames
-         shipsPlayer1 <- inputShips minShipSize []
+        putStrLn ("1 or 2 players? Enter a number and press Enter")
+        option <- getLine
+        if(option == "1" || option == "1 ")
+            then do   
+                names <- inputNames
+                shipsPlayer1 <- inputShips minShipSize []
+                shipsPlayer2 <- inputShipsAI minShipSize []
+                play names [initField, initField] [shipsPlayer1, shipsPlayer2] True --Single Player == True
+            else do 
+                putStrLn "Enter Name for Player1"
+                primPlayer <- getLine
+                putStrLn ("Enter Ships for " ++ primPlayer)
+                shipsPlayer1 <- inputShips minShipSize [] 
 
-         shipsPlayer2 <- inputShipsAI minShipSize []
+                putStrLn "Enter Name for Player2"
+                sconPlayer <- getLine
+                putStrLn ("Enter Ships for " ++ sconPlayer)
+                shipsPlayer2 <- inputShips minShipSize []
+                play [primPlayer, sconPlayer] [initField, initField] [shipsPlayer1, shipsPlayer2] False --Single Player == False
 
-         play names [initField, initField] [shipsPlayer1, shipsPlayer2]
