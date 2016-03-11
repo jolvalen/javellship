@@ -181,16 +181,16 @@ fire (enemyField, enemyShips) coordinate = (markShot enemyField (snd coordinate)
 -- Output:
 --    Tuple containing the updated field and ships of the opponent
 --
-fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> Bool -> IO (Field, [Ship])
-fireWithEveryShip (enemyField, enemyShips) [] myField multiplePlayers = return (enemyField, enemyShips)
-fireWithEveryShip (enemyField, enemyShips) ourShips myField multiplePlayers = do
+fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> [String] -> IO (Field, [Ship])
+fireWithEveryShip (enemyField, enemyShips) [] myField nameCheck = return (enemyField, enemyShips)
+fireWithEveryShip (enemyField, enemyShips) ourShips myField nameCheck = do
                                                         putStrLn("Enter \"show my ships\" to view BattleField")
                                                         putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)")
                                                         string <- getLine
                                                         if (string == "show my ships")
-                                                            then if multiplePlayers 
+                                                            then if (head nameCheck /= name1 && last nameCheck /= name2) --Both names are not the standard names
                                                                 then do
-                                                                    putStrLn ("Are you player 1? (Y/N)")
+                                                                    putStrLn ("Are you player 1? (Y/N)") --Find out which player this is
                                                                     answer <- getLine
                                                                     if (answer == "Y")
                                                                         then 
@@ -198,10 +198,8 @@ fireWithEveryShip (enemyField, enemyShips) ourShips myField multiplePlayers = do
                                                                         else 
                                                                             printShips enemyField enemyShips
                                                                 else 
-                                                                    printShips myField ourShips
+                                                                    printShips myField ourShips --Print only ships for player1, Not the computer. 
                                                             else do 
-                                                                --putStrLn ("Your placed ships")
-                                                                --printShips myField ourShips
                                                                 putStrLn ("")                                                                
                                                         let coord = convertStringToCoordinates string
                                                         if validateCoordinate coord 
@@ -211,15 +209,15 @@ fireWithEveryShip (enemyField, enemyShips) ourShips myField multiplePlayers = do
                                                                     then do
                                                                         putStrLn ("Firing at coordinate (" ++ show (fst coord) ++ "," ++ show (snd coord) ++ "), Hit")
                                                                     else do
-                                                                    putStrLn ("Firing at coordinate (" ++ show (fst coord) ++ "," ++ show (snd coord) ++ "), Miss")
-                                                                if (length newEnemyShips < length enemyShips && multiplePlayers)
+                                                                        putStrLn ("Firing at coordinate (" ++ show (fst coord) ++ "," ++ show (snd coord) ++ "), Miss")
+                                                                if length newEnemyShips < length enemyShips --Check for destroyed ships. 
                                                                     then do
                                                                         putStrLn "You sunk my battleship!"  
-                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField True
+                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField nameCheck
                                                                     else
-                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField True
+                                                                        fireWithEveryShip (newEnemyField, newEnemyShips) (tail ourShips) myField nameCheck
                                                             else
-                                                                fireWithEveryShip (enemyField, enemyShips) ourShips myField False
+                                                                fireWithEveryShip (enemyField, enemyShips) ourShips myField nameCheck
 
 fireWithEveryShipAI :: (Field, [Ship]) -> [Ship] -> IO (Field, [Ship])
 fireWithEveryShipAI (enemyField, enemyShips) [] = return (enemyField, enemyShips)
@@ -253,12 +251,12 @@ fireWithEveryShipAI (enemyField, enemyShips) ourShips = do
 --
 -- The first element in the lists, are from the player whose turn it currently is
 --
-play :: [String] -> [Field] -> [[Ship]] -> Bool -> IO ()
-play names fields ships singlePlayer = do
+startGame :: [String] -> [Field] -> [[Ship]] -> Bool -> IO ()
+startGame names fields ships singlePlayer = do
                             putStrLn ("\n" ++ head names ++ " turn")
                             printField (head names) (head fields) (head ships)
                             printField (last names) (last fields) (last ships)
-                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships) (head fields) False
+                            (newField, newShipList) <- fireWithEveryShip (last fields, last ships) (head ships) (head fields) names
                             if length newShipList == 0 
                                 then do
                                     putStrLn ("\n" ++ head names ++ " won!\n")
@@ -266,12 +264,12 @@ play names fields ships singlePlayer = do
                                     printField (head names) (head fields) (head ships)
                                 else if singlePlayer
                                     then
-                                        playAI [last names, head names] [newField, head fields] [newShipList, head ships] 
+                                        startAI [last names, head names] [newField, head fields] [newShipList, head ships] 
                                     else
-                                        play [last names, head names] [newField, head fields] [newShipList, head ships] False
+                                        startGame [last names, head names] [newField, head fields] [newShipList, head ships] False
 
-playAI :: [String] -> [Field] -> [[Ship]] -> IO ()
-playAI names fields ships = do
+startAI :: [String] -> [Field] -> [[Ship]] -> IO ()
+startAI names fields ships = do
                             putStrLn ("\n" ++ head names ++ "'s turn")
                             --printShips (head fields) (head ships)
                             --printField (head names) (head fields) (head ships)
@@ -284,7 +282,7 @@ playAI names fields ships = do
                                     printField (last names) newField newShipList
                                     printField (head names) (head fields) (head ships)
                                 else
-                                    play [last names, head names] [newField, head fields] [newShipList, head ships] True
+                                    startGame [last names, head names] [newField, head fields] [newShipList, head ships] True
 
 -- Input one ship with a given length
 inputShip :: [Ship] -> Int -> IO Ship
@@ -371,7 +369,7 @@ main = do
                 names <- inputNames
                 shipsPlayer1 <- inputShips minShipSize []
                 shipsPlayer2 <- inputShipsAI minShipSize []
-                play names [initField, initField] [shipsPlayer1, shipsPlayer2] True --Single Player == True
+                startGame names [initField, initField] [shipsPlayer1, shipsPlayer2] True --Single Player == True
             else do 
                 putStrLn "Enter Name for Player1"
                 primPlayer <- getLine
@@ -382,5 +380,5 @@ main = do
                 sconPlayer <- getLine
                 putStrLn ("Enter Ships for " ++ sconPlayer)
                 shipsPlayer2 <- inputShips minShipSize []
-                play [primPlayer, sconPlayer] [initField, initField] [shipsPlayer1, shipsPlayer2] False --Single Player == False
+                startGame [primPlayer, sconPlayer] [initField, initField] [shipsPlayer1, shipsPlayer2] False --Single Player == False
 
