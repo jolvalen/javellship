@@ -181,8 +181,7 @@ fire (enemyField, enemyShips) coordinate = (markShot enemyField (snd coordinate)
 fireWithEveryShip :: (Field, [Ship]) -> [Ship] -> Field -> IO (Field, [Ship])
 fireWithEveryShip (enemyField, enemyShips) [] myField= return (enemyField, enemyShips)
 fireWithEveryShip (enemyField, enemyShips) ourShips myField= do
-                                                        putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)")
-                                                        putStrLn ("Enter \"show my ships\" to view BattleField")
+                                                        putStrLn ("Enter the coordinates to fire shot (" ++ show (length ourShips) ++ " shots left)  or  " ++ "Enter \"show my ships\" to view BattleField")
                                                         string <- getLine
                                                         if (string == "show my ships")
                                                         then do
