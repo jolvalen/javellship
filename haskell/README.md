@@ -3,6 +3,7 @@
 How to run a simple testFile to analyze the running time of our haskell program: 
 
 How to run the Battleship.hs:
+	
 	Windows (command prompt):
 		$ ghc battleship.hs
 		$ battleship.exe
