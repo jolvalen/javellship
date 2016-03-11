@@ -1,6 +1,6 @@
 # javellship
 
-welcome to our CMPS-112 project
+Welcome to our CMPS-112 project
 
 To build the haskell project, use the associated "Makefile". 
 
