@@ -111,7 +111,7 @@ splitCoordinatesInString (x:xs) = if x == ';'
 -- Output the field in the terminal
 printField :: String -> Field -> [Ship] -> IO ()
 printField playerName field ships = do
-                                      putStrLn (playerName ++ "'s field:")
+                                      putStrLn (playerName ++ "'s field status:")
                                       putStrLn (take (fieldSize+2) (repeat 'H') ++ "\nH" ++ convertFieldToString field ships (1, 1) ++ take (fieldSize+1) (repeat 'H') )
                                       putStrLn ""
 
