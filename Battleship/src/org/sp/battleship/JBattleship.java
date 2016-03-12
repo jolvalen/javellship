@@ -24,6 +24,8 @@ import org.sp.resources.Images;
  */
 public class JBattleship extends javax.swing.JFrame {
 
+    public JOptionPane endPane; 
+    
     Image front;
     Image checkBoard;
     int state=0;
@@ -150,7 +152,7 @@ public class JBattleship extends javax.swing.JFrame {
     
     /** Creates new form JBattleship */
     public JBattleship() {
-        Images i =new Images();
+        Images i = new Images();
         front=i.load2main("front.jpg");
         checkBoard=i.load2main("checkboard.jpg");
         initComponents();
@@ -199,13 +201,13 @@ public class JBattleship extends javax.swing.JFrame {
                                     opponentCheckboardB[f][c]=true;
                                     repaint();
                                     if (checkVictory(opponentCheckboard, opponentCheckboardB)){
-                                        JOptionPane.showMessageDialog(null, "You've won! Congratulations");
+                                        endPane.showMessageDialog(null, "You've won! Congratulations");
                                         state=0;
                                     }
                                     shootAI();
                                     repaint();
                                     if (checkVictory(myCheckboard, myCheckboardB)){
-                                        JOptionPane.showMessageDialog(null, "You've Lost, better luck next time");
+                                        endPane.showMessageDialog(null, "You've Lost, better luck next time");
                                         state=0;
                                     }
                                     repaint();
@@ -222,6 +224,7 @@ public class JBattleship extends javax.swing.JFrame {
                 public void mouseMoved(MouseEvent e) {
                     int x=e.getX();
                     int y=e.getY();
+                    System.out.println("x: " + x + "y: " + y);
                     if (state==1 && x>=106 && y>=200 && x<106+30*8 && y<200+30*8){
                         int f=(y-200)/30;
                         int c=(x-106)/30;
@@ -336,7 +339,9 @@ public class JBattleship extends javax.swing.JFrame {
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new JBattleship().setVisible(true);
+                JBattleship frame = new JBattleship();
+                frame.setVisible(true);
+                frame.setName("frame");//Needed for JUnit test lookup
             }
         });
     }
