@@ -8,10 +8,12 @@ The game Battleship first started as a pencil paper game which dates back to Wor
 Instructions on how to run the Java and the Haskell implementation are in their respective folders.
 
 Battleship - Java Version
+
         To run the java version you need to install Netbeans with JDK 8, which can be found here: http://www.oracle.com/technetwork/java/javase/downloads/index.htm
 
 
 Haskell  - Haskell version
+
         To run haskell version you need to install the Haskell Platform, which can be found here: https://www.haskell.org/platform/
 
 you can also read the report to see the comparisons that we did for the two different languages.
