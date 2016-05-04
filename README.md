@@ -1,6 +1,9 @@
 # javellship
+A modern rendition of the classic game Battleship in Java and Haskel
 
 Welcome to our CMPS-112 project
+
+In this project, we are building the famo
 
 To build the haskell project, use the associated "Makefile". 
 
