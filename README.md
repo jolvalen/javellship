@@ -8,6 +8,10 @@ The game Battleship first started as a pencil paper game which dates back to Wor
 Instructions on how to run the Java and the Haskell implementation are in their respective folders.
 
 Battleship - Java Version
+
+
 Haskell    - Haskell version
+
+you can also read the report to see the comparisons that we did for the two different languages.
 
 Enjoy!!
